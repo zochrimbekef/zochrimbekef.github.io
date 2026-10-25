@@ -1,0 +1,19 @@
+{
+  "name": "זוכרים בכיף",
+  "short_name": "זוכרים בכיף",
+  "description": "12 דקות ביום לזיכרון ולקשב: כל מילה הופכת לתמונה, לסדר ולצבע",
+  "id": "/",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#E8F7FF",
+  "theme_color": "#BDE8FF",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

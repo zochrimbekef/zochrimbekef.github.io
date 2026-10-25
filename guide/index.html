@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>מדריך זוכרים בכיף</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800&family=Secular+One&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1C3A1E;--ink2:#35553A;--ink3:#5E7F62;--blue:#164A6B;--soft:#F1FAEF;--leaf:#2E7D32;--sun:#FFC93C;--ease:cubic-bezier(.22,.8,.24,1)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{overflow-x:hidden;max-width:100%}
+body{font-family:Rubik,system-ui,sans-serif;font-size:17px;line-height:1.6;color:var(--ink);background:linear-gradient(180deg,#BDE8FF 0,#E8F7FF 360px,#F4FBF2 700px,#EAF7E6)}
+main{max-width:720px;margin:0 auto;padding:24px 16px 70px}
+.sun{position:absolute;top:22px;left:20px;width:54px;height:54px;border-radius:50%;background:radial-gradient(#FFF6A8,var(--sun));box-shadow:0 0 40px var(--sun);animation:float 4s ease-in-out infinite}
+@keyframes float{50%{transform:translateY(-6px)}}
+h1{font-family:'Secular One',sans-serif;font-weight:400;font-size:clamp(30px,8vw,44px);color:var(--blue);margin-top:46px}
+.lead{color:var(--ink2);font-size:18px;margin:4px 0 14px}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.toc a{background:#ffffffd0;border-radius:99px;padding:6px 12px;font-size:15px;color:var(--blue);text-decoration:none;font-weight:500}
+section{background:#ffffffee;border-radius:24px;padding:18px 16px;margin:16px 0;box-shadow:0 8px 26px #2E7D3214;opacity:0;transform:translateY(14px);animation:in .7s var(--ease) forwards}
+section:nth-of-type(2){animation-delay:.06s}section:nth-of-type(3){animation-delay:.12s}section:nth-of-type(n+4){animation-delay:.18s}
+@keyframes in{to{opacity:1;transform:none}}
+h2{font-family:'Secular One',sans-serif;font-weight:400;font-size:24px;color:var(--leaf);margin-bottom:10px;display:flex;gap:10px;align-items:center}
+h2 .ic{display:inline-grid;place-items:center;width:42px;height:42px;border-radius:14px;background:var(--soft);font-size:22px;flex:none}
+h3{font-size:18px;margin:12px 0 4px}
+p{color:var(--ink2);margin-bottom:6px}
+ul,ol{padding-inline-start:22px;color:var(--ink2);display:flex;flex-direction:column;gap:6px}
+b{color:var(--ink)}
+.row{display:flex;gap:12px;align-items:flex-start;background:var(--soft);border-radius:16px;padding:12px;margin:8px 0}
+.row .e{font-size:28px;flex:none;line-height:1.2}
+.row p{margin:0}
+.grow{display:flex;justify-content:space-around;align-items:flex-end;background:linear-gradient(180deg,transparent 60%,#8CD98C 60%,#5DBB63);border-radius:18px;height:110px;padding:0 6px 8px;margin:10px 0}
+.grow div{text-align:center;color:#fff;font-weight:700;font-size:13px}
+.grow span{display:block;line-height:1;animation:sway 4s ease-in-out infinite;transform-origin:bottom}
+@keyframes sway{50%{transform:rotate(-4deg)}}
+details{background:var(--soft);border-radius:14px;padding:10px 12px;margin:8px 0}
+summary{font-weight:700;cursor:pointer}
+details p{margin-top:6px}
+.ltr{direction:ltr;unicode-bidi:isolate}
+.back{display:inline-block;margin-top:10px;background:var(--leaf);color:#fff;text-decoration:none;border-radius:14px;padding:10px 16px;font-weight:700}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}section{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="sun"></div>
+<main>
+  <h1>📖 מדריך זוכרים בכיף</h1>
+  <p class="lead">12 דקות ביום לזיכרון ולקשב. כל מילה הופכת לתמונה, לסדר ולצבע, בלי שינון.</p>
+  <nav class="toc"><a href="#garden">🌱 הגן</a><a href="#ex">🎯 התרגילים</a><a href="#helper">🎙️ עוזר מיידי</a><a href="#install">📲 התקנה</a><a href="#privacy">🔒 פרטיות</a><a href="#faq">❓ שאלות</a></nav>
+
+  <section id="garden">
+    <h2><span class="ic">🌱</span>הגן והרצף</h2>
+    <p>בכל יום יש שלושה תרגילים קצרים. כל תרגיל שמסיימים <b>משקה צמח</b> 💧:</p>
+    <div class="grow"><div><span style="font-size:30px">🌱</span>יום 1</div><div><span style="font-size:40px">🌿</span>2 ימים</div><div><span style="font-size:52px">🌷</span>5 ימים</div><div><span style="font-size:64px">🌳</span>14 ימים</div></div>
+    <ul>
+      <li>🌷 <b>שמיעה</b> גדל מ"שמע והפוך לתמונה", 🌻 <b>קשב</b> מ"ציד מילה", ו־🌳 <b>מילים</b> מ"ללמוד דבר חדש".</li>
+      <li>🔥 <b>רצף:</b> כל יום שבו עשית לפחות תרגיל אחד נספר. יום בלי תרגול מתחיל את הרצף מחדש, אבל הגן נשאר.</li>
+      <li>כל מילה חדשה שאתה שותל היא <b>זרע</b>. הבדיקות הקצרות שלה הן ה<b>השקיה</b>.</li>
+    </ul>
+  </section>
+
+  <section id="ex">
+    <h2><span class="ic">🎯</span>שלושת התרגילים</h2>
+    <div class="row"><span class="e">👂</span><p><b>שמע והפוך לתמונה (4 דקות).</b> הטלפון אומר הוראה קצרה פעם אחת, והיא נעלמת. בוחרים את התמונות לפי הסדר. אין בטלפון קול בעברית? ההוראה מופיעה כתובה לכמה שניות.</p></div>
+    <div class="row"><span class="e">🎯</span><p><b>ציד מילה (4 דקות).</b> רואים את מילת המטרה, ואז מילים עוברות אחת אחת. לוחצים "🎯 תפסתי!" רק כשהיא מופיעה.</p></div>
+    <div class="row"><span class="e">📚</span><p><b>ללמוד דבר חדש (4 דקות).</b> מילה עם תמונה וסיפור שמחבר את הצליל למשהו מוכר. ב"🎵 שיר" רואים רק אות ראשונה וצבע לכל שורה, ולוחצים רק על מילה שנתקעים בה. ב"➕ להוסיף" שותלים מילה משלך: המילה, מה היא אומרת, תמונה, וסיפור שכתבת בעצמך.</p></div>
+    <p style="margin-top:8px">🚧 <b>בבנייה:</b> ההתקדמות מיום ליום (הוראה ארוכה יותר, הסבר ארוך יותר) והבדיקות אחרי יום, 3 ימים ושבוע מגיעות בעדכונים הבאים.</p>
+  </section>
+
+  <section id="helper">
+    <h2><span class="ic">🎙️</span>עוזר מיידי</h2>
+    <ol>
+      <li>לוחצים על <b>🎙️ עוזר מיידי</b> בתחתית מסך הבית.</li>
+      <li>לוחצים על המיקרופון. בפעם הראשונה הטלפון שואל אם מותר להשתמש במיקרופון, ועונים "מותר".</li>
+      <li>כשמסיימים לוחצים <b>"✔ סיימתי, תכין כרטיס"</b>. מופיע כרטיס: מתי, איפה, מה להביא.</li>
+      <li>לוחצים על שורה כדי לתקן אותה, על ✕ כדי למחוק, ועל "🧰 לציוד" או "📋 לליין־אפ" כדי לשלוח בשיתוף (למשל בוואטסאפ לעצמך).</li>
+    </ol>
+    <p style="margin-top:8px">💬 לפני ההקשבה מופיעה תזכורת עדינה: "כדאי לומר: אני רושם לעצמי בטלפון". אפשר לכבות אותה ב־⚙️.</p>
+    <p>⌨️ <b>אם ההקשבה לא עובדת:</b> מופיעה תיבה. לוחצים בה, ואז על המיקרופון שבמקלדת, ומדברים.</p>
+  </section>
+
+  <section id="install">
+    <h2><span class="ic">📲</span>התקנה למסך הבית</h2>
+    <h3>🤖 אנדרואיד</h3>
+    <ol><li>פותחים את <span class="ltr">zochrimbekef.github.io</span> בכרום.</li><li>באפליקציה: ⚙️ ← <b>"📲 התקנה למסך הבית"</b> ← <b>"התקן"</b>.</li><li>אם אין כפתור: ⋮ למעלה ← "התקנת האפליקציה".</li></ol>
+    <h3>🍎 אייפון</h3>
+    <ol><li>פותחים את הכתובת ב<b>ספארי</b> (לא בתוך וואטסאפ).</li><li>כפתור השיתוף ⬆️ ← <b>"הוסף למסך הבית"</b> ← "הוסף".</li></ol>
+    <p style="margin-top:8px">אחרי ההתקנה האפליקציה נפתחת מהאייקון 🌱, גם בלי אינטרנט.</p>
+  </section>
+
+  <section id="privacy">
+    <h2><span class="ic">🔒</span>פרטיות</h2>
+    <ul>
+      <li><b>החשבון:</b> אותו מייל וסיסמה כמו בכסף בכיף ובזמן בכיף.</li>
+      <li><b>מה נשמר:</b> הגן, הרצף והמילים ששתלת. הם נשמרים בטלפון ובחשבון שלך, ורק אתה רואה אותם.</li>
+      <li><b>הקול:</b> אנחנו לא שומרים הקלטה בכלל. הטלפון הופך את הדיבור לטקסט (דרך גוגל באנדרואיד או אפל באייפון). אחרי שהכרטיס נוצר, גם הטקסט המלא נמחק, ונשאר רק הכרטיס.</li>
+      <li><b>הערות</b> שאתה שולח מגיעות למוישי, עם סוג הטלפון כדי לעזור לתקן תקלות.</li>
+    </ul>
+  </section>
+
+  <section id="faq">
+    <h2><span class="ic">❓</span>שאלות</h2>
+    <details><summary>שכחתי את הסיסמה</summary><p>במסך הכניסה כותבים את המייל ולוחצים "שכחתי סיסמה". מגיע מייל עם קישור, ובו בוחרים סיסמה חדשה. הסיסמה משתנה בכל האפליקציות יחד.</p></details>
+    <details><summary>החלפתי טלפון. הגן הלך?</summary><p>לא. נכנסים עם אותו מייל וסיסמה, והגן חוזר. כתוב "📱 נשמר בטלפון"? זה אומר שעוד לא היה חיבור, וזה יעלה לחשבון לבד.</p></details>
+    <details><summary>לא שומעים את ההוראה בתרגיל הראשון</summary><p>בודקים שהשמע של הטלפון לא על שקט. אם אין בטלפון קול בעברית, ההוראה מופיעה כתובה לכמה שניות ונעלמת.</p></details>
+    <details><summary>איך שולחים הערה או רעיון?</summary><p>⚙️ ← "💌 הערה או רעיון". ההערה מגיעה ישר למוישי.</p></details>
+    <details><summary>מה חדש באפליקציה?</summary><p>אחרי כל עדכון נפתח חלון "✨ מה חדש". אפשר לפתוח אותו שוב ב־⚙️.</p></details>
+  </section>
+  <a class="back" href="../">🌱 חזרה לאפליקציה</a>
+</main>
+</body>
+</html>

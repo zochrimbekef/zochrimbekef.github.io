@@ -1,6 +1,7 @@
 // חשבון ושמירה בענן — אותו חשבון כמו "כסף בכיף" ו"זמן בכיף" (אותו מייל וסיסמה).
 // כל המצב של המשתמש (הגן, הרצף, הזרעים) נשמר בשורה אחת בטבלה zochrim_state. כל משתמש רואה רק את השורה שלו.
 import { BDIKA } from './db.js';
+import * as track from './track.js';
 
 const CONFIG = {
   url: 'https://dmhxovlepdoobkoiyjhj.supabase.co',
@@ -8,6 +9,8 @@ const CONFIG = {
   key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtaHhvdmxlcGRvb2Jrb2l5amhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIzNDUxNDIsImV4cCI6MjEwNzkyMTE0Mn0.qao1CRL1QWJhMnWsAaPXKt-WxbgySqIlH68iIdCYH1o',
 };
 export const APP = 'zochrim';
+// 📊 לוח הבקרה: מתי נפתחה, האם מותקנת, סוג הטלפון ותקלות. בלי תוכן. (במחשב של המפתח, localhost, לא נשלח)
+if (!BDIKA) track.init({ app: APP, url: CONFIG.url, key: CONFIG.key });
 let sb = null, me = null, loading = null;
 export const user = () => me;
 
@@ -44,6 +47,7 @@ const nice = e => {
 export async function currentUser() {
   const c = await client();
   me = (await c.auth.getSession()).data.session?.user || null;
+  if (me) track.ping(c);
   return me;
 }
 /** כשהמשתמש חוזר מקישור "שכחתי סיסמה" במייל */
@@ -53,8 +57,8 @@ export async function onRecovery(fn) {
 }
 export async function signIn(email, password) {
   const { error } = await (await client()).auth.signInWithPassword({ email, password });
-  if (error) throw new Error(nice(error));
-  return currentUser();
+  if (error) { track.fail('auth', error.status || error.message); throw new Error(nice(error)); }
+  await currentUser(); track.ping(sb); return me;
 }
 export async function signUp(email, password) {
   const { data, error } = await (await client()).auth.signUp({ email, password });

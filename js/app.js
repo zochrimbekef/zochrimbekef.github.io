@@ -423,7 +423,7 @@ function settings() {
     <button class="srow" data-a="install">📲 התקנה למסך הבית</button>
     <label class="srow"><span>💬 תזכורת "כדאי לומר שאני רושם"</span><input type="checkbox" id="ntcPref" ${D.prefs.notice !== false ? 'checked' : ''}></label>
     ${db.BDIKA ? '' : '<button class="srow out" data-a="out">🚪 יציאה מהחשבון</button>'}
-    <p class="ver">זוכרים בכיף · גרסה ${LATEST}</p>`);
+    <p class="ver">זוכרים בכיף · גרסה ${LATEST.split("-").reverse().join(".")}</p>`);
   c.querySelector('#ntcPref').onchange = async e => { D.prefs.notice = e.target.checked; await save(); };
   c.querySelectorAll('[data-a]').forEach(b => b.onclick = () => ({ news: () => openNews(), feedback: () => openFeedback(), install: () => openInstall(), out: () => doSignOut() })[b.dataset.a]());
 }

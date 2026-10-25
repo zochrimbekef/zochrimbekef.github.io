@@ -1,5 +1,5 @@
 // מאפשר לאפליקציה להיפתח גם בלי אינטרנט. deploy.sh מחליף את CACHE בכל העלאה, וכך מגיעה גרסה חדשה.
-const CACHE = 'zochrim-20261025172228';
+const CACHE = 'zochrim-20261025174105';
 const FILES = ['./', 'index.html', 'css/style.css', 'js/app.js', 'js/db.js', 'js/sync.js', 'js/news.js', 'js/track.js', 'vendor/supabase.js', 'guide/',
   'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-180.png'];
 self.addEventListener('install', e => {

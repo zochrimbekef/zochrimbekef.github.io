@@ -196,3 +196,6 @@ textarea.live{width:100%;border:0;font-size:16px;min-height:120px;font-family:in
 .gt{text-align:center;font-size:30px;font-weight:800;color:var(--blue);margin:6px 0 4px}
 .gate .card{margin-top:18px}
 .gate .link{display:block;margin:12px auto 0}
+.nohear{display:block;margin:10px auto 0}
+.said{margin-top:8px;background:#FFF8DC;border-radius:14px;padding:10px;color:var(--ink)}
+.cnt{margin-top:6px;font-size:14px;color:var(--ink3)}

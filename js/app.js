@@ -126,7 +126,7 @@ async function finish(k, msg) {
 }
 
 // ================= תרגיל 1: שמע והפוך לתמונה =================
-const IT = { cable: ['🔌', 'כבל'], yossi: ['📞', 'להתקשר ליוסי'], pedal: ['🦶', 'דוושה'], keys: ['🎹', 'מקלדת'], mic: ['🎤', 'מיקרופון'], batt: ['🔋', 'סוללות'], water: ['💧', 'מים'], notes: ['📄', 'תווים'], phones: ['🎧', 'אוזניות'], car: ['🚗', 'לתדלק'], bread: ['🍞', 'לחם'], red: ['🟥', 'אדום'] };
+const IT = { cable: ['🔌', 'כבל'], yossi: ['📞', 'להתקשר ליוסי'], pedal: ['🦶', 'דוושה'], keys: ['🎹', 'מקלדת'], mic: ['🎤', 'מיקרופון'], batt: ['🔋', 'סוללות'], water: ['💧', 'מים'], notes: ['📄', 'תווים'], phones: ['🎧', 'אוזניות'], car: ['🚗', 'לתדלק'], bread: ['🍞', 'לחם'], torch: ['🔦', 'פנס'] };
 const R1 = [
   { say: 'תביא כבל, תתקשר ליוסי, ואל תשכח דוושה.', seq: ['cable', 'yossi', 'pedal'] },
   { say: 'קודם תקנה לחם, אחר כך תתדלק, תביא את התווים, ובסוף תתקשר ליוסי.', seq: ['bread', 'car', 'notes', 'yossi'] },
@@ -135,33 +135,51 @@ const R1 = [
 let heVoice = null;
 function loadVoice() { try { heVoice = speechSynthesis.getVoices().find(x => /^he|^iw/i.test(x.lang)) || null; } catch { /* */ } }
 try { loadVoice(); speechSynthesis.onvoiceschanged = loadVoice; } catch { /* */ }
+// הקראה בקול. ok=false כשהטלפון לא באמת השמיע (אין קול בעברית, נגמר מהר מדי, או לא התחיל בכלל)
+let noVoice = false; db.get('noVoice', false).then(v => { noVoice = !!v; });
 function speak(t, onend) {
   try {
-    if (!('speechSynthesis' in window)) throw 0;
+    if (noVoice || !('speechSynthesis' in window)) throw 0;
+    const voices = speechSynthesis.getVoices();
+    if (voices.length && !heVoice) throw 0;                 // יש רשימת קולות ואין בה עברית
     const u = new SpeechSynthesisUtterance(t); u.lang = 'he-IL'; u.rate = 0.92; if (heVoice) u.voice = heVoice;
-    let ended = false; const fin = ok => { if (!ended) { ended = true; onend(ok); } };
-    u.onend = () => fin(true); u.onerror = () => fin(false);
+    let ended = false, started = 0;
+    const fin = ok => { if (!ended) { ended = true; onend(ok); } };
+    const minMs = Math.max(1000, t.length * 35);              // הקראה אמיתית לוקחת לפחות כך
+    u.onstart = () => { started = Date.now(); };
+    u.onend = () => fin(!!started && Date.now() - started >= minMs);
+    u.onerror = () => fin(false);
     speechSynthesis.cancel(); speechSynthesis.speak(u);
-    timers.push(setTimeout(() => fin(true), Math.max(4000, t.length * 120)));
+    timers.push(setTimeout(() => { if (!started) { try { speechSynthesis.cancel(); } catch { /* */ } fin(false); } }, 1800));
+    timers.push(setTimeout(() => fin(!!started), Math.max(5000, t.length * 130)));
   } catch { onend(false); }
+}
+function showWritten(L, why) {
+  $('#wave')?.classList.remove('on'); $('#pick').innerHTML = ''; $('#nohear')?.remove();
+  $('#lst').innerHTML = `${why}<div class="big said">${L.say}</div><div class="cnt" id="cnt"></div>`;
+  let n = Math.max(4, Math.round(L.say.length / 12));
+  const tick = () => { if (!$('#cnt')) return; if (n <= 0) { $('#lst').textContent = 'ההוראה נעלמה. עכשיו לפי הסדר:'; return pick1(L); } $('#cnt').textContent = `נעלמת בעוד ${n}…`; n--; timers.push(setTimeout(tick, 1000)); };
+  tick();
 }
 function ex1() {
   const L = R1[Math.min(T.ex1Level, R1.length - 1)];
   V().innerHTML = `<div class="scr">${topbar('👂 שמע והפוך לתמונה', `שלב ${T.ex1Level + 1} מתוך 3`)}
    <div class="card"><p>הטלפון יגיד הוראה קצרה, פעם אחת. אחר כך היא נעלמת, ואתה בוחר את התמונות <b>לפי הסדר</b>.</p>
-   <div class="listen"><div class="wave" id="wave"><i></i><i></i><i></i><i></i><i></i></div><div id="lst" class="muted">מוכן?</div></div>
+   <div class="listen"><div class="wave" id="wave"><i></i><i></i><i></i><i></i><i></i></div><div id="lst" class="muted">מוכן? כדאי להגביר את הקול 🔊</div></div>
    <button class="btn b" id="play">🔊 השמע את ההוראה</button></div><div id="pick"></div></div>`;
   $('#play').onclick = () => {
     $('#play').style.display = 'none'; $('#wave').classList.add('on'); $('#lst').textContent = 'מקשיבים…';
-    speak(L.say, ok => {
-      $('#wave')?.classList.remove('on');
+    $('#play').insertAdjacentHTML('afterend', '<button class="link nohear" id="nohear">🔇 לא שמעתי כלום</button>');
+    $('#nohear').onclick = () => { clearT(); showWritten(L, 'לא נשמע? הנה ההוראה כתובה לרגע:'); };
+    speak(L.say, async ok => {
       if (!$('#lst')) return;
-      if (!ok) {
-        $('#lst').innerHTML = `בטלפון הזה אין קול בעברית, אז מראים כתוב לרגע:<div class="big" style="margin-top:6px">${L.say}</div>`;
-        timers.push(setTimeout(() => { if ($('#lst')) { $('#lst').textContent = 'ההוראה נעלמה.'; pick1(L); } }, 4500));
-      } else { $('#lst').textContent = 'ההוראה נעלמה. עכשיו לפי הסדר:'; pick1(L); }
+      if (!ok) { noVoice = true; await db.set('noVoice', true); return showWritten(L, 'הטלפון לא השמיע קול בעברית, אז ההוראה כתובה לרגע:'); }
+      $('#wave')?.classList.remove('on');
+      $('#lst').textContent = 'ההוראה נעלמה. עכשיו לפי הסדר:'; pick1(L);
     });
   };
+  if (noVoice) $('#lst').innerHTML = 'בטלפון הזה ההוראה מופיעה כתובה לכמה שניות, ונעלמת.<br><button class="link" id="tryVoice">🔊 לנסות שוב עם קול</button>';
+  $('#tryVoice')?.addEventListener('click', async () => { noVoice = false; await db.set('noVoice', false); toast('ננסה שוב עם קול'); });
 }
 function pick1(L) {
   const extra = Object.keys(IT).filter(k => !L.seq.includes(k)).sort(() => Math.random() - 0.5).slice(0, 8 - L.seq.length);
@@ -423,7 +441,7 @@ function settings() {
     <button class="srow" data-a="install">📲 התקנה למסך הבית</button>
     <label class="srow"><span>💬 תזכורת "כדאי לומר שאני רושם"</span><input type="checkbox" id="ntcPref" ${D.prefs.notice !== false ? 'checked' : ''}></label>
     ${db.BDIKA ? '' : '<button class="srow out" data-a="out">🚪 יציאה מהחשבון</button>'}
-    <p class="ver">זוכרים בכיף · גרסה ${LATEST.split("-").reverse().join(".")}</p>`);
+    <p class="ver">זוכרים בכיף · גרסה ${NEWS[0].v.split("-").reverse().join(".")}${NEWS[0].rev ? " (" + NEWS[0].rev + ")" : ""}</p>`);
   c.querySelector('#ntcPref').onchange = async e => { D.prefs.notice = e.target.checked; await save(); };
   c.querySelectorAll('[data-a]').forEach(b => b.onclick = () => ({ news: () => openNews(), feedback: () => openFeedback(), install: () => openInstall(), out: () => doSignOut() })[b.dataset.a]());
 }

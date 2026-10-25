@@ -15,7 +15,7 @@ const blank = () => ({ v: 1, days: {}, seeds: [], prefs: { notice: true }, updat
 let D = blank();          // המצב שנשמר
 let timers = [];
 const T = { ex1Level: 0, ex3tab: 'words', ex3i: 0, songLines: null, songStuck: {} }; // זמני, לא נשמר
-const clearT = () => { timers.forEach(t => { clearTimeout(t); clearInterval(t); }); timers = []; try { speechSynthesis.cancel(); } catch { /* */ } };
+const clearT = () => { timers.forEach(t => { clearTimeout(t); clearInterval(t); }); timers = []; try { speechSynthesis.cancel(); curAudio?.pause(); } catch { /* */ } };
 
 const pad = n => String(n).padStart(2, '0');
 const dayKey = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -154,6 +154,25 @@ function speak(t, onend) {
     timers.push(setTimeout(() => fin(!!started), Math.max(5000, t.length * 130)));
   } catch { onend(false); }
 }
+// 🎙️ הקלטות מוכנות מראש (tools/make-audio.py): עובדות בכל טלפון, גם בלי קול עברי מובנה
+const audioName = t => { let h = 5381; for (const ch of t) h = ((h * 33) ^ ch.codePointAt(0)) >>> 0; return 'audio/' + h.toString(16) + '.mp3'; };
+let curAudio = null;
+function playRec(t) {
+  return new Promise(res => {
+    try {
+      curAudio?.pause(); const a = new Audio(audioName(t)); curAudio = a;
+      let done = false; const fin = ok => { if (!done) { done = true; res(ok); } };
+      a.onended = () => fin(true); a.onerror = () => fin(false);
+      a.play().catch(() => fin(false));
+      timers.push(setTimeout(() => { if (a.paused && !a.ended && a.currentTime === 0) fin(false); }, 2500));
+    } catch { res(false); }
+  });
+}
+/** קודם ההקלטה, אם אין — הקול של הטלפון, ואם גם הוא שותק — ok=false */
+async function say(t, onend) {
+  if (await playRec(t)) return onend(true);
+  speak(t, onend);
+}
 function showWritten(L, why) {
   $('#wave')?.classList.remove('on'); $('#pick').innerHTML = ''; $('#nohear')?.remove();
   $('#lst').innerHTML = `${why}<div class="big said">${L.say}</div><div class="cnt" id="cnt"></div>`;
@@ -170,16 +189,14 @@ function ex1() {
   $('#play').onclick = () => {
     $('#play').style.display = 'none'; $('#wave').classList.add('on'); $('#lst').textContent = 'מקשיבים…';
     $('#play').insertAdjacentHTML('afterend', '<button class="link nohear" id="nohear">🔇 לא שמעתי כלום</button>');
-    $('#nohear').onclick = () => { clearT(); showWritten(L, 'לא נשמע? הנה ההוראה כתובה לרגע:'); };
-    speak(L.say, async ok => {
+    $('#nohear').onclick = () => { clearT(); curAudio?.pause(); showWritten(L, 'לא נשמע? הנה ההוראה כתובה לרגע:'); };
+    say(L.say, async ok => {
       if (!$('#lst')) return;
-      if (!ok) { noVoice = true; await db.set('noVoice', true); return showWritten(L, 'הטלפון לא השמיע קול בעברית, אז ההוראה כתובה לרגע:'); }
+      if (!ok) { noVoice = true; await db.set('noVoice', true); return showWritten(L, 'לא הצלחתי להשמיע קול, אז ההוראה כתובה לרגע:'); }
       $('#wave')?.classList.remove('on');
       $('#lst').textContent = 'ההוראה נעלמה. עכשיו לפי הסדר:'; pick1(L);
     });
   };
-  if (noVoice) $('#lst').innerHTML = 'בטלפון הזה ההוראה מופיעה כתובה לכמה שניות, ונעלמת.<br><button class="link" id="tryVoice">🔊 לנסות שוב עם קול</button>';
-  $('#tryVoice')?.addEventListener('click', async () => { noVoice = false; await db.set('noVoice', false); toast('ננסה שוב עם קול'); });
 }
 function pick1(L) {
   const extra = Object.keys(IT).filter(k => !L.seq.includes(k)).sort(() => Math.random() - 0.5).slice(0, 8 - L.seq.length);
@@ -275,7 +292,7 @@ function ex3words() {
     <div class="sched"><span>היום 🌱</span><span class="now">מחר 💧</span><span>עוד 3 ימים 💧</span><span>עוד שבוע 💧</span></div></div>
     <button class="btn b" style="margin-top:14px" id="say">🔊 איך זה נשמע</button>
     <button class="btn" id="nx">${T.ex3i < WORDS.length - 1 ? 'הבא ←' : 'שתלתי 💧'}</button>`;
-  $('#say').onclick = () => { try { const u = new SpeechSynthesisUtterance(w.en); u.lang = 'en-US'; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch { toast('אין קול בטלפון הזה'); } };
+  $('#say').onclick = async () => { if (await playRec(w.en)) return; try { const u = new SpeechSynthesisUtterance(w.en); u.lang = 'en-US'; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch { toast('אין קול בטלפון הזה'); } };
   $('#nx').onclick = () => { if (T.ex3i < WORDS.length - 1) { T.ex3i++; ex3words(); } else { T.ex3i = 0; finish('ex3', 'בדקת מילה אחת ושתלת 2 זרעים חדשים.'); } };
 }
 function ex3song() {

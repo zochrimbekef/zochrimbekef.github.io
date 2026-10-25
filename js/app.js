@@ -4,6 +4,7 @@ import * as db from './db.js';
 import * as sync from './sync.js';
 import { NEWS, LATEST } from './news.js';
 import { IT, BANK, MIN_LEVEL, MAX_LEVEL, ROUNDS } from './bank1.js';
+import { build, MAX2, ROUNDS2 } from './bank2.js';
 
 const $ = s => document.querySelector(s);
 const V = () => $('#view');
@@ -100,7 +101,7 @@ function home() {
    <div class="garden">${Object.entries(PLANTS).map(([k, p]) => { const c = countEx(k); return `<div class="pl" data-k="${k}"><div class="drops"></div><span class="p" style="font-size:${34 + Math.min(c, 20) * 2}px">${p.st[stage(c)]}</span>${p.name}${d[k] ? ' 💧' : ''}</div>`; }).join('')}</div>
    <div class="tasks">
      <div class="muted">${n === 3 ? '🌻 הגן הושקה היום. נתראה מחר!' : `היום: ${n} מתוך 3 · ${12 - n * 4} דקות נשארו`}</div>
-     ${EX.map(e => `<button class="tk ${d[e[0]] ? 'tk-done' : ''}" onclick="location.hash='${e[0]}'"><span class="e">${e[1]}</span><span class="w"><b>${e[2]}</b><small>${e[0] === 'ex1' ? `4 דקות · רמה: ${E1().level} דברים` : e[3]}</small></span><span class="st">${d[e[0]] ? '💧✔' : '💧'}</span></button>`).join('')}
+     ${EX.map(e => `<button class="tk ${d[e[0]] ? 'tk-done' : ''}" onclick="location.hash='${e[0]}'"><span class="e">${e[1]}</span><span class="w"><b>${e[2]}</b><small>${e[0] === 'ex1' ? `4 דקות · רמה: ${E1().level} דברים` : e[0] === 'ex2' ? `4 דקות · רמה ${E2().level} מתוך ${MAX2}` : e[3]}</small></span><span class="st">${d[e[0]] ? '💧✔' : '💧'}</span></button>`).join('')}
      ${next ? `<button class="btn" style="margin-top:12px" onclick="location.hash='${next[0]}'">▶ ממשיכים: ${next[2]}</button>` : ''}
      <div class="seedsum"><div><b>${D.seeds.length}</b>זרעים בגן</div><div><b>${st}</b>ימים ברצף</div><div><b>${totalDays()}</b>ימי תרגול</div></div>
      ${sync.cloud === 'off' && sync.user() ? '<div class="cloudnote">📱 נשמר בטלפון. יעלה לחשבון כשיהיה חיבור.</div>' : ''}
@@ -256,38 +257,64 @@ function pick1(L) {
   draw();
 }
 // ================= תרגיל 2: ציד מילה =================
-const H2 = { target: 'מקלדת', text: 'אחרי בדיקת הסאונד תעלה את המקלדת לבמה. תחבר את הכבל הארוך לרמקול השמאלי, ותבדוק שהדוושה עובדת. לפני שהקהל נכנס, תכוון שוב את המקלדת ותשים מים ליד המיקרופון. אם הזמר מבקש, תזיז את המקלדת קצת ימינה.' };
+const E2 = () => (D.ex2 ??= { level: 1, run: 0, hist: [] });
+const TCOL = [{ c: '#2E7D32', bg: '#E3F6E1', n: 'ירוק' }, { c: '#C2410C', bg: '#FFEDD5', n: 'כתום' }];
+function weekLine2() {
+  const since = addDays(dayKey(), -6), h = E2().hist.filter(x => x.d >= since);
+  if (!h.length) return '';
+  const first = h[0].words, best = Math.max(...h.filter(x => x.ok).map(x => x.words), 0);
+  return best > first ? `🌻 השבוע: מ־${first} ל־${best} מילים` : best ? `🌻 השבוע תפסת הכל בהסבר של ${best} מילים` : '';
+}
 function ex2() {
-  const words = H2.text.split(/\s+/), tgt = words.map((w, i) => w.replace(/[.,]/g, '').endsWith(H2.target) ? i : -1).filter(i => i >= 0);
-  V().innerHTML = `<div class="scr">${topbar('🎯 ציד מילה', '4 דקות')}
-   <div class="card target"><div class="muted">מילת המטרה</div><div class="tw">${H2.target}</div><p class="muted" style="margin-top:8px">מילים יעברו אחת אחת. לוחצים על הכפתור הגדול <b>רק</b> כשמופיעה המילה הזו.</p></div>
+  T.ex2Round ??= 0; T.ex2Res ??= []; T.ex2Start ??= E2().level;
+  const e = E2(), R = T.ex2Cur || (T.ex2Cur = build(e.level, T.ex2LastWorld)), two = R.targets.length > 1;
+  T.ex2LastWorld = R.world;
+  const total = R.hits.filter(h => h >= 0).length;
+  V().innerHTML = `<div class="scr">${topbar('🎯 ציד מילה', `סיבוב ${T.ex2Round + 1} מתוך ${ROUNDS2}`)}
+   <div class="lvl">${Array.from({ length: MAX2 }, (_, i) => `<i class="${i + 1 <= e.level ? 'on' : ''}">${i + 1}</i>`).join('')}<span>רמה ${e.level} · ${R.words.length} מילים${e.run ? ' · עוד הצלחה אחת ועולים 🌱' : ''}</span></div>
+   <div class="card target"><div class="muted">${R.name} · ${two ? 'שתי מילות מטרה' : 'מילת המטרה'}</div>
+     <div class="tws">${R.targets.map((t, k) => `<span class="tw" style="color:${TCOL[k].c};background:${TCOL[k].bg}">${t}</span>`).join('')}</div>
+     <p class="muted" style="margin-top:8px">מילים יעברו אחת אחת. ${two ? 'כשמופיעה מילת מטרה, לוחצים על <b>הכפתור בצבע שלה</b>.' : 'לוחצים על הכפתור הגדול <b>רק</b> כשמופיעה המילה הזו.'}${R.decoys.length ? `<br>🪤 זהירות: יש מילים שנראות דומות (כמו "${R.decoys[0]}").` : ''}</p></div>
    <div class="stage" id="stg"><div class="word" id="wd">⏳</div></div>
    <div class="prog"><i id="pg"></i></div>
-   <button class="btn y hunt" id="hit" style="margin-top:14px">🎯 תפסתי!</button>
+   <div class="hits ${two ? 'two' : ''}">${R.targets.map((t, k) => `<button class="btn hunt" data-h="${k}" style="background:${two ? TCOL[k].c : 'var(--sun)'};color:${two ? '#fff' : '#3b2a00'};box-shadow:0 5px 0 #0003">🎯 ${two ? t : 'תפסתי!'}</button>`).join('')}</div>
    <button class="btn g" id="start" style="margin-top:12px">▶ מתחילים</button></div>`;
   let i = -1, hits = 0, wrong = 0, shownAt = 0, running = false; const caught = {};
-  $('#hit').onclick = () => {
-    if (!running) return; const stg = $('#stg');
-    const cur = tgt.includes(i) ? i : (tgt.includes(i - 1) && Date.now() - shownAt < 350 ? i - 1 : -1);
-    if (cur >= 0 && !caught[cur]) { caught[cur] = 1; hits++; stg.className = 'stage flash'; try { navigator.vibrate?.(40); } catch { /* */ } }
+  document.querySelectorAll('[data-h]').forEach(b => b.onclick = () => {
+    if (!running) return; const k = +b.dataset.h, stg = $('#stg');
+    const cand = [i, i - 1].find(x => x >= 0 && R.hits[x] === k && !caught[x] && (x === i || Date.now() - shownAt < 350));
+    if (cand !== undefined) { caught[cand] = 1; hits++; stg.className = 'stage flash'; try { navigator.vibrate?.(40); } catch { /* */ } }
     else { wrong++; stg.className = 'stage miss'; }
     timers.push(setTimeout(() => { stg.className = 'stage'; }, 300));
-  };
+  });
   $('#start').onclick = () => {
     $('#start').remove(); running = true; let k = 3;
     const cd = setInterval(() => { $('#wd').textContent = k || '!'; if (k-- < 0) { clearInterval(cd); step(); } }, 500); timers.push(cd);
     function step() {
-      i++; if (i >= words.length) { running = false; return end(); }
-      $('#wd').textContent = words[i].replace(/[.,]/g, ''); shownAt = Date.now();
-      $('#pg').style.width = ((i + 1) / words.length * 100) + '%';
-      timers.push(setTimeout(step, 720));
+      i++; if (i >= R.words.length) { running = false; return end(); }
+      $('#wd').textContent = R.words[i].replace(/[.,?!]/g, ''); shownAt = Date.now();
+      $('#pg').style.width = ((i + 1) / R.words.length * 100) + '%';
+      timers.push(setTimeout(step, R.ms));
     }
   };
-  function end() {
+  async function end() {
     $('#wd').textContent = '🏁';
-    $('#hit').outerHTML = `<div class="card"><div class="big">תפסת ${hits} מתוך ${tgt.length}</div><p class="muted">${wrong ? `לחצת ${wrong} פעמים על מילה אחרת.` : 'בלי אף לחיצה מיותרת 👏'}</p>
-      <button class="btn" id="fin" style="margin-top:10px">סיימתי 💧</button></div>`;
-    $('#fin').onclick = () => finish('ex2', `תפסת ${hits} מתוך ${tgt.length} בהסבר של ${words.length} מילים.`);
+    const ok = hits === total && wrong <= 1, before = e.level;
+    e.hist.push({ d: dayKey(), words: R.words.length, ok }); if (e.hist.length > 200) e.hist = e.hist.slice(-200);
+    if (ok) { e.run++; if (e.run >= 2 && e.level < MAX2) { e.level++; e.run = 0; } } else e.run = 0;
+    T.ex2Res.push(ok); await save();
+    const last = T.ex2Round >= ROUNDS2 - 1;
+    document.querySelector('.hits').outerHTML = `<div class="card"><div class="big">${hits === total ? '✅' : '👍'} תפסת ${hits} מתוך ${total}</div>
+      <p class="muted">${wrong ? `לחצת ${wrong} ${wrong === 1 ? 'פעם' : 'פעמים'} לא במקום.` : 'בלי אף לחיצה מיותרת 👏'}</p>
+      ${e.level > before ? `<div class="levelup">⬆️ עלית לרמה ${e.level}: הסבר ארוך יותר${e.level === 3 ? ' ושתי מילות מטרה' : e.level === 4 ? ' ומילים מטעות' : ''}!</div>` : ''}
+      <button class="btn" id="fin" style="margin-top:10px">${last ? 'סיימתי 💧' : 'לסיבוב הבא ←'}</button></div>`;
+    $('#fin').onclick = () => {
+      T.ex2Cur = null;
+      if (!last) { T.ex2Round++; ex2(); return scrollTo(0, 0); }
+      const good = T.ex2Res.filter(Boolean).length, start = T.ex2Start; T.ex2Round = 0; T.ex2Res = []; T.ex2Start = null;
+      const wl = weekLine2();
+      finish('ex2', `${good} מתוך ${ROUNDS2} סיבובים תפסת הכל.${E2().level > start ? `<br>⬆️ היום עלית לרמה ${E2().level}.` : `<br>מחר ממשיכים מרמה ${E2().level}.`}${wl ? '<br>' + wl : ''}`);
+    };
   }
 }
 
@@ -648,6 +675,7 @@ function bdikaFixture() {
   const d = blank(); let k = dayKey();
   for (let i = 1; i <= 6; i++) { k = addDays(dayKey(), -i); d.days[k] = { ex1: 1, ex2: 1, ex3: 1 }; }
   d.seeds = [['🔑', 'Key', 'מפתח'], ['🚪', 'Door', 'דלת'], ['📖', 'Book', 'ספר'], ['🍎', 'Apple', 'תפוח'], ['🌙', 'Moon', 'ירח']].map(([pic, en, he], i) => ({ id: 's' + i, pic, en, he, story: '', planted: addDays(dayKey(), -i) }));
+  d.ex2 = { level: 3, run: 0, hist: [{ d: addDays(dayKey(), -4), words: 45, ok: true }] };
   d.ex1 = { level: 4, run: 1, seen: [], hist: [{ d: addDays(dayKey(), -5), len: 3, ok: true }, { d: addDays(dayKey(), -1), len: 4, ok: true }] };
   return d;
 }

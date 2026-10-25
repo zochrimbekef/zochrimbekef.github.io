@@ -199,3 +199,19 @@ textarea.live{width:100%;border:0;font-size:16px;min-height:120px;font-family:in
 .nohear{display:block;margin:10px auto 0}
 .said{margin-top:8px;background:#FFF8DC;border-radius:14px;padding:10px;color:var(--ink)}
 .cnt{margin-top:6px;font-size:14px;color:var(--ink3)}
+/* part 2: levels & tiles */
+.lvl{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:2px 0 4px}
+.lvl i{width:26px;height:26px;border-radius:50%;background:#ffffffb0;display:grid;place-items:center;font-style:normal;font-size:13px;font-weight:700;color:var(--ink3)}
+.lvl i.on{background:var(--g2);color:#fff}
+.lvl span{font-size:14px;color:var(--ink2);margin-inline-start:4px}
+.em{position:relative;display:inline-block;line-height:1}
+.em .dot{position:absolute;bottom:-3px;left:-5px;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #0003}
+.em .cnt2{position:absolute;bottom:-4px;left:-10px;font-style:normal;font-size:12px;font-weight:800;background:var(--sun);color:#3b2a00;border-radius:99px;padding:0 5px;line-height:1.5}
+.slot .em{font-size:28px}
+.levelup{margin-top:8px;background:#FFF1B8;border-radius:12px;padding:8px 10px;font-weight:700;animation:pop .45s var(--ease) both}
+.aw{white-space:nowrap}
+.aw .em{font-size:18px}
+.slots{flex-wrap:nowrap;gap:6px}
+.slot{flex:1 1 0;max-width:58px;width:auto;height:auto;aspect-ratio:1;font-size:clamp(20px,7vw,30px)}
+.slot .em{font-size:inherit}
+.slot .n{width:18px;height:18px;font-size:11px;top:-7px;right:-5px}

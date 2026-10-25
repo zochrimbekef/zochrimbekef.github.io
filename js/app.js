@@ -3,6 +3,7 @@
 import * as db from './db.js';
 import * as sync from './sync.js';
 import { NEWS, LATEST } from './news.js';
+import { IT, BANK, MIN_LEVEL, MAX_LEVEL, ROUNDS } from './bank1.js';
 
 const $ = s => document.querySelector(s);
 const V = () => $('#view');
@@ -14,7 +15,7 @@ const FEEDBACK_TO = 'mvindish@gmail.com';
 const blank = () => ({ v: 1, days: {}, seeds: [], prefs: { notice: true }, updated: 0 });
 let D = blank();          // המצב שנשמר
 let timers = [];
-const T = { ex1Level: 0, ex3tab: 'words', ex3i: 0, songLines: null, songStuck: {} }; // זמני, לא נשמר
+const T = { ex3tab: 'words', ex3i: 0, songLines: null, songStuck: {} }; // זמני, לא נשמר
 const clearT = () => { timers.forEach(t => { clearTimeout(t); clearInterval(t); }); timers = []; try { speechSynthesis.cancel(); curAudio?.pause(); } catch { /* */ } };
 
 const pad = n => String(n).padStart(2, '0');
@@ -99,7 +100,7 @@ function home() {
    <div class="garden">${Object.entries(PLANTS).map(([k, p]) => { const c = countEx(k); return `<div class="pl" data-k="${k}"><div class="drops"></div><span class="p" style="font-size:${34 + Math.min(c, 20) * 2}px">${p.st[stage(c)]}</span>${p.name}${d[k] ? ' 💧' : ''}</div>`; }).join('')}</div>
    <div class="tasks">
      <div class="muted">${n === 3 ? '🌻 הגן הושקה היום. נתראה מחר!' : `היום: ${n} מתוך 3 · ${12 - n * 4} דקות נשארו`}</div>
-     ${EX.map(e => `<button class="tk ${d[e[0]] ? 'tk-done' : ''}" onclick="location.hash='${e[0]}'"><span class="e">${e[1]}</span><span class="w"><b>${e[2]}</b><small>${e[3]}</small></span><span class="st">${d[e[0]] ? '💧✔' : '💧'}</span></button>`).join('')}
+     ${EX.map(e => `<button class="tk ${d[e[0]] ? 'tk-done' : ''}" onclick="location.hash='${e[0]}'"><span class="e">${e[1]}</span><span class="w"><b>${e[2]}</b><small>${e[0] === 'ex1' ? `4 דקות · רמה: ${E1().level} דברים` : e[3]}</small></span><span class="st">${d[e[0]] ? '💧✔' : '💧'}</span></button>`).join('')}
      ${next ? `<button class="btn" style="margin-top:12px" onclick="location.hash='${next[0]}'">▶ ממשיכים: ${next[2]}</button>` : ''}
      <div class="seedsum"><div><b>${D.seeds.length}</b>זרעים בגן</div><div><b>${st}</b>ימים ברצף</div><div><b>${totalDays()}</b>ימי תרגול</div></div>
      ${sync.cloud === 'off' && sync.user() ? '<div class="cloudnote">📱 נשמר בטלפון. יעלה לחשבון כשיהיה חיבור.</div>' : ''}
@@ -126,12 +127,6 @@ async function finish(k, msg) {
 }
 
 // ================= תרגיל 1: שמע והפוך לתמונה =================
-const IT = { cable: ['🔌', 'כבל'], yossi: ['📞', 'להתקשר ליוסי'], pedal: ['🦶', 'דוושה'], keys: ['🎹', 'מקלדת'], mic: ['🎤', 'מיקרופון'], batt: ['🔋', 'סוללות'], water: ['💧', 'מים'], notes: ['📄', 'תווים'], phones: ['🎧', 'אוזניות'], car: ['🚗', 'לתדלק'], bread: ['🍞', 'לחם'], torch: ['🔦', 'פנס'] };
-const R1 = [
-  { say: 'תביא כבל, תתקשר ליוסי, ואל תשכח דוושה.', seq: ['cable', 'yossi', 'pedal'] },
-  { say: 'קודם תקנה לחם, אחר כך תתדלק, תביא את התווים, ובסוף תתקשר ליוסי.', seq: ['bread', 'car', 'notes', 'yossi'] },
-  { say: 'תכניס לתיק אוזניות, סוללות, מיקרופון, מים ואת הדוושה.', seq: ['phones', 'batt', 'mic', 'water', 'pedal'] },
-];
 let heVoice = null;
 function loadVoice() { try { heVoice = speechSynthesis.getVoices().find(x => /^he|^iw/i.test(x.lang)) || null; } catch { /* */ } }
 try { loadVoice(); speechSynthesis.onvoiceschanged = loadVoice; } catch { /* */ }
@@ -180,9 +175,26 @@ function showWritten(L, why) {
   const tick = () => { if (!$('#cnt')) return; if (n <= 0) { $('#lst').textContent = 'ההוראה נעלמה. עכשיו לפי הסדר:'; return pick1(L); } $('#cnt').textContent = `נעלמת בעוד ${n}…`; n--; timers.push(setTimeout(tick, 1000)); };
   tick();
 }
+// --- התקדמות: רמה = כמה דברים בהוראה. הצלחה מלאה פעמיים ברצף ← רמה אחת למעלה. טעות ← נשארים (בלי ירידה) ---
+const E1 = () => (D.ex1 ??= { level: MIN_LEVEL, run: 0, seen: [], hist: [] });
+function nextInstr() {
+  const e = E1(), pool = BANK.filter(b => b.seq.length === e.level);
+  const fresh = pool.filter(b => !e.seen.includes(b.id) && b.id !== T.ex1Last);
+  const L = (fresh.length ? fresh : pool.filter(b => b.id !== T.ex1Last))[Math.floor(Math.random() * (fresh.length || pool.length - 1))] || pool[0];
+  T.ex1Last = L.id; return L;
+}
+function weekLine() {
+  const since = addDays(dayKey(), -6), h = E1().hist.filter(x => x.d >= since);
+  if (!h.length) return '';
+  const first = h[0].len, best = Math.max(...h.filter(x => x.ok).map(x => x.len), 0);
+  return best > first ? `🌷 השבוע: מ־${first} ל־${best} דברים` : best ? `🌷 השבוע זכרת עד ${best} דברים לפי הסדר` : '';
+}
+const tile = (k, cls = '') => { const it = IT[k]; return `<span class="em ${cls}">${it.e}${it.c ? `<i class="dot" style="background:${it.c}"></i>` : ''}${it.n ? `<i class="cnt2">×${it.n}</i>` : ''}</span>`; };
 function ex1() {
-  const L = R1[Math.min(T.ex1Level, R1.length - 1)];
-  V().innerHTML = `<div class="scr">${topbar('👂 שמע והפוך לתמונה', `שלב ${T.ex1Level + 1} מתוך 3`)}
+  T.ex1Round ??= 0; T.ex1Res ??= []; T.ex1StartLevel ??= E1().level;
+  const L = T.ex1Cur || (T.ex1Cur = nextInstr()), e = E1();
+  V().innerHTML = `<div class="scr">${topbar('👂 שמע והפוך לתמונה', `סיבוב ${T.ex1Round + 1} מתוך ${ROUNDS}`)}
+   <div class="lvl">${Array.from({ length: MAX_LEVEL - MIN_LEVEL + 1 }, (_, i) => `<i class="${i + MIN_LEVEL <= e.level ? 'on' : ''}">${i + MIN_LEVEL}</i>`).join('')}<span>רמה: ${e.level} דברים${e.run ? ' · עוד הצלחה אחת ועולים 🌱' : ''}</span></div>
    <div class="card"><p>הטלפון יגיד הוראה קצרה, פעם אחת. אחר כך היא נעלמת, ואתה בוחר את התמונות <b>לפי הסדר</b>.</p>
    <div class="listen"><div class="wave" id="wave"><i></i><i></i><i></i><i></i><i></i></div><div id="lst" class="muted">מוכן? כדאי להגביר את הקול 🔊</div></div>
    <button class="btn b" id="play">🔊 השמע את ההוראה</button></div><div id="pick"></div></div>`;
@@ -198,29 +210,51 @@ function ex1() {
     });
   };
 }
+/** התמונות לבחירה: כל מה שנאמר + הסחות. קודם "אחים" (אותו חפץ בצבע או בכמות אחרת), אחר כך מאותו עולם */
+function options(L) {
+  const total = L.seq.length <= 4 ? 8 : 12, inSeq = new Set(L.seq), mix = a => a.sort(() => Math.random() - 0.5);
+  const sib = mix(Object.keys(IT).filter(k => !inSeq.has(k) && IT[k].g && L.seq.some(s => IT[s].g === IT[k].g)));
+  const wds = new Set(L.seq.map(k => IT[k].wd));
+  const same = mix(Object.keys(IT).filter(k => !inSeq.has(k) && !sib.includes(k) && wds.has(IT[k].wd)));
+  const rest = mix(Object.keys(IT).filter(k => !inSeq.has(k) && !sib.includes(k) && !same.includes(k)));
+  return mix([...L.seq, ...[...sib, ...same, ...rest].slice(0, total - L.seq.length)]);
+}
 function pick1(L) {
-  const extra = Object.keys(IT).filter(k => !L.seq.includes(k)).sort(() => Math.random() - 0.5).slice(0, 8 - L.seq.length);
-  const opts = [...L.seq, ...extra].sort(() => Math.random() - 0.5), chosen = [];
+  const opts = options(L), chosen = [];
   const draw = () => {
-    $('#pick').innerHTML = `<div class="card"><div class="slots">${L.seq.map((_, i) => `<div class="slot" id="s${i}"><span class="n">${i + 1}</span>${chosen[i] ? IT[chosen[i]][0] : ''}</div>`).join('')}</div>
-     <div class="icons">${opts.map(k => `<button class="ic ${chosen.includes(k) ? 'used' : ''}" data-k="${k}">${IT[k][0]}<small>${IT[k][1]}</small></button>`).join('')}</div>
+    $('#pick').innerHTML = `<div class="card"><div class="slots">${L.seq.map((_, i) => `<div class="slot" id="s${i}"><span class="n">${i + 1}</span>${chosen[i] ? tile(chosen[i]) : ''}</div>`).join('')}</div>
+     <div class="icons">${opts.map(k => `<button class="ic ${chosen.includes(k) ? 'used' : ''}" data-k="${k}">${tile(k)}<small>${IT[k].w}</small></button>`).join('')}</div>
      <div class="row2" style="margin-top:12px"><button class="btn g" id="undo">↶ בטל</button><button class="btn" id="chk" ${chosen.length < L.seq.length ? 'disabled' : ''}>✔ בדוק</button></div></div>`;
     document.querySelectorAll('.ic').forEach(b => b.onclick = () => { const k = b.dataset.k; if (chosen.includes(k) || chosen.length >= L.seq.length) return; chosen.push(k); draw(); });
     $('#undo').onclick = () => { chosen.pop(); draw(); };
-    $('#chk').onclick = () => {
+    $('#chk').onclick = async () => {
       let ok = 0;
       L.seq.forEach((k, i) => { const g = chosen[i] === k; if (g) ok++; $('#s' + i).classList.add(g ? 'ok' : 'bad'); });
-      $('#pick').insertAdjacentHTML('beforeend', `<div class="card"><div class="big">${ok === L.seq.length ? `✅ מושלם! ${ok} מתוך ${ok}` : `👍 ${ok} מתוך ${L.seq.length} במקום`}</div>
-        <div class="answer">מה נאמר: ${L.seq.map(k => IT[k][0] + ' ' + IT[k][1]).join(' ← ')}</div>
-        <button class="btn" style="margin-top:12px" id="nx">${T.ex1Level < 2 ? 'הבא: הוראה ארוכה יותר ←' : 'סיימתי 💧'}</button></div>`);
       $('#chk').disabled = true; $('#undo').disabled = true;
+      const e = E1(), all = ok === L.seq.length, before = e.level;
+      e.hist.push({ d: dayKey(), len: L.seq.length, ok: all }); if (e.hist.length > 200) e.hist = e.hist.slice(-200);
+      e.seen = [...e.seen.filter(x => x !== L.id), L.id].slice(-12);
+      if (all) { e.run++; if (e.run >= 2 && e.level < MAX_LEVEL) { e.level++; e.run = 0; } } else e.run = 0;
+      T.ex1Res.push({ ok, len: L.seq.length });
+      await save();
+      const up = e.level > before, last = T.ex1Round >= ROUNDS - 1;
+      $('#pick').insertAdjacentHTML('beforeend', `<div class="card"><div class="big">${all ? `✅ מושלם! ${ok} מתוך ${ok}` : `👍 ${ok} מתוך ${L.seq.length} במקום`}</div>
+        ${up ? `<div class="levelup">⬆️ עלית לרמה של ${e.level} דברים!</div>` : ''}
+        <div class="answer">מה נאמר: ${L.seq.map(k => `<span class="aw">${tile(k)} ${IT[k].w}</span>`).join(' ← ')}</div>
+        <button class="btn" style="margin-top:12px" id="nx">${last ? 'סיימתי 💧' : 'לסיבוב הבא ←'}</button></div>`);
       $('#nx').scrollIntoView({ behavior: 'smooth', block: 'center' });
-      $('#nx').onclick = () => { if (T.ex1Level < 2) { T.ex1Level++; ex1(); scrollTo(0, 0); } else { T.ex1Level = 0; finish('ex1', 'זכרת הוראה של 5 דברים לפי הסדר.'); } };
+      $('#nx').onclick = () => {
+        T.ex1Cur = null;
+        if (!last) { T.ex1Round++; ex1(); return scrollTo(0, 0); }
+        const res = T.ex1Res, good = res.filter(r => r.ok === r.len).length, start = T.ex1StartLevel;
+        T.ex1Round = 0; T.ex1Res = []; T.ex1StartLevel = null;
+        const wl = weekLine();
+        finish('ex1', `${good} מתוך ${ROUNDS} הוראות זכרת בדיוק לפי הסדר.${E1().level > start ? `<br>⬆️ היום עלית לרמה של ${E1().level} דברים.` : `<br>מחר ממשיכים מרמה של ${E1().level} דברים.`}${wl ? '<br>' + wl : ''}`);
+      };
     };
   };
   draw();
 }
-
 // ================= תרגיל 2: ציד מילה =================
 const H2 = { target: 'מקלדת', text: 'אחרי בדיקת הסאונד תעלה את המקלדת לבמה. תחבר את הכבל הארוך לרמקול השמאלי, ותבדוק שהדוושה עובדת. לפני שהקהל נכנס, תכוון שוב את המקלדת ותשים מים ליד המיקרופון. אם הזמר מבקש, תזיז את המקלדת קצת ימינה.' };
 function ex2() {
@@ -602,6 +636,7 @@ function bdikaFixture() {
   const d = blank(); let k = dayKey();
   for (let i = 1; i <= 6; i++) { k = addDays(dayKey(), -i); d.days[k] = { ex1: 1, ex2: 1, ex3: 1 }; }
   d.seeds = [['🔑', 'Key', 'מפתח'], ['🚪', 'Door', 'דלת'], ['📖', 'Book', 'ספר'], ['🍎', 'Apple', 'תפוח'], ['🌙', 'Moon', 'ירח']].map(([pic, en, he], i) => ({ id: 's' + i, pic, en, he, story: '', planted: addDays(dayKey(), -i) }));
+  d.ex1 = { level: 4, run: 1, seen: [], hist: [{ d: addDays(dayKey(), -5), len: 3, ok: true }, { d: addDays(dayKey(), -1), len: 4, ok: true }] };
   return d;
 }
 async function boot() {

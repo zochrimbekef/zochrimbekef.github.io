@@ -215,3 +215,4 @@ textarea.live{width:100%;border:0;font-size:16px;min-height:120px;font-family:in
 .slot{flex:1 1 0;max-width:58px;width:auto;height:auto;aspect-ratio:1;font-size:clamp(20px,7vw,30px)}
 .slot .em{font-size:inherit}
 .slot .n{width:18px;height:18px;font-size:11px;top:-7px;right:-5px}
+.tipbox{background:#FFF8DC;border:1px solid #F3D97A;border-radius:14px;padding:10px 12px;margin-bottom:12px;color:var(--ink2)}

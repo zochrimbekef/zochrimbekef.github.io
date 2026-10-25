@@ -558,13 +558,25 @@ let installEvt = null;
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; });
 const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+// 📦 נפתחו מתוך אפליקציה אחרת (וואטסאפ, אפליקציית סינון…): משם אי אפשר להתקין. מעבירים פעם אחת ל-Chrome / Safari
+const APP_URL = 'https://zochrimbekef.github.io/';
+const inWebView = () => { const ua = navigator.userAgent; return !isIOS() && /android/i.test(ua) && (/; wv\)/.test(ua) || (/Version\/\d/.test(ua) && /Chrome/.test(ua)) || /FBAN|FBAV|Instagram|Line\/|Moi\b|WhatsApp|Telegram/i.test(ua)); };
+const iosNotSafari = () => isIOS() && (/CriOS|FxiOS|EdgiOS|OPiOS|FBAN|FBAV|Instagram|Line\//i.test(navigator.userAgent) || !/Safari/i.test(navigator.userAgent));
+const CHROME_INTENT = 'intent://zochrimbekef.github.io/#Intent;scheme=https;package=com.android.chrome;end';
 function openInstall() {
   let body;
-  if (standalone()) body = '<p>✅ האפליקציה כבר מותקנת אצלך. פותחים אותה מהאייקון 🌱 במסך הבית.</p>';
+  if (inWebView()) body = `<div class="tipbox">📦 <b>נפתחתם מתוך אפליקציה אחרת</b> (וואטסאפ, אפליקציית סינון וכדומה), ומשם אי אפשר להתקין. פותחים פעם אחת ב־<b>Chrome</b>, ושם ההתקנה עובדת:</div>
+    <a class="btn" href="${CHROME_INTENT}" style="display:block;text-align:center;text-decoration:none">🌐 לפתוח ב־Chrome</a>
+    <button class="btn g" id="instCopy">📋 להעתיק את הקישור</button>
+    <p class="muted" style="margin-top:8px">לא נפתח? מעתיקים את הקישור, פותחים את Chrome, מדביקים למעלה ונכנסים. ושם: ⚙️ ← "📲 התקנה".</p>`;
+  else if (iosNotSafari()) body = `<div class="tipbox">⚠️ <b>באייפון אפשר להתקין רק מ־Safari</b>, ומהדפדפן הזה זה לא יעבוד.</div>
+    <ol class="steps"><li>לוחצים: <button class="chip" id="instCopy">📋 להעתיק את הקישור</button></li><li>פותחים את <b>Safari</b>, מדביקים למעלה ונכנסים.</li><li>שם: כפתור השיתוף <b>⬆️</b> ← <b>"הוסף למסך הבית"</b> ← <b>"הוסף"</b>.</li></ol>`;
+  else if (standalone()) body = '<p>✅ האפליקציה כבר מותקנת אצלך. פותחים אותה מהאייקון 🌱 במסך הבית.</p>';
   else if (installEvt) body = '<p>לחיצה אחת, והאייקון 🌱 יופיע במסך הבית.</p><button class="btn" id="doInst">📲 התקן</button>';
   else if (isIOS()) body = `<ol class="steps"><li>פותחים את הכתובת ב<b>ספארי</b> (לא בתוך וואטסאפ).</li><li>לוחצים על כפתור השיתוף <b>⬆️</b> בתחתית.</li><li>גוללים ובוחרים <b>"הוסף למסך הבית"</b>.</li><li>לוחצים <b>"הוסף"</b>. האייקון 🌱 יופיע במסך הבית.</li></ol>`;
   else body = `<ol class="steps"><li>פותחים את הכתובת ב<b>כרום</b>: <span class="ltr">zochrimbekef.github.io</span></li><li>לוחצים על <b>⋮</b> למעלה.</li><li>בוחרים <b>"התקנת האפליקציה"</b> או <b>"הוספה למסך הבית"</b>.</li></ol>`;
   const c = sheet(`<h3>📲 התקנה למסך הבית</h3>${body}<p class="muted" style="margin-top:10px">אחרי ההתקנה האפליקציה עובדת גם בלי אינטרנט.</p>`);
+  c.querySelector('#instCopy')?.addEventListener('click', async e => { try { await navigator.clipboard.writeText(APP_URL); e.target.textContent = inWebView() ? '✅ הועתק. עכשיו פותחים Chrome ומדביקים' : '✅ הועתק. עכשיו ל־Safari'; } catch { e.target.textContent = APP_URL; } });
   c.querySelector('#doInst')?.addEventListener('click', async () => { installEvt.prompt(); const r = await installEvt.userChoice; installEvt = null; closeSheet(); if (r.outcome === 'accepted') toast('🌱 הותקנה!'); });
 }
 

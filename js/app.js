@@ -6,7 +6,10 @@ import { NEWS, LATEST } from './news.js';
 import { IT, BANK, MIN_LEVEL, MAX_LEVEL, ROUNDS } from './bank1.js';
 import { build, MAX2, ROUNDS2 } from './bank2.js';
 
-const $ = s => document.querySelector(s);
+// אלמנט שלא קיים (למשל בטעינה חצי-מעודכנת: index.html ישן עם app.js חדש) — מחזירים "אלמנט ריק" שבולע הכל, במקום קריסה
+const NOEL = new Proxy({}, { get: (_, k) => k === 'classList' ? { add() {}, remove() {}, toggle() {}, contains: () => false } : k === 'style' || k === 'dataset' ? {} : () => NOEL, set: () => true });
+const $ = s => document.querySelector(s) || (console.warn('missing element', s), NOEL);
+const has = s => !!document.querySelector(s);   // לבדיקה אם אלמנט קיים (בלי האלמנט הריק)
 const V = () => $('#view');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const FEEDBACK_FORM = 'afe845b5ff6d0c2cd899d08390663e7c'; // גיבוי במייל (FormSubmit), כמו בשאר האפליקציות
@@ -173,7 +176,7 @@ function showWritten(L, why) {
   $('#wave')?.classList.remove('on'); $('#pick').innerHTML = ''; $('#nohear')?.remove();
   $('#lst').innerHTML = `${why}<div class="big said">${L.say}</div><div class="cnt" id="cnt"></div>`;
   let n = Math.max(4, Math.round(L.say.length / 12));
-  const tick = () => { if (!$('#cnt')) return; if (n <= 0) { $('#lst').textContent = 'ההוראה נעלמה. עכשיו לפי הסדר:'; return pick1(L); } $('#cnt').textContent = `נעלמת בעוד ${n}…`; n--; timers.push(setTimeout(tick, 1000)); };
+  const tick = () => { if (!has('#cnt')) return; if (n <= 0) { $('#lst').textContent = 'ההוראה נעלמה. עכשיו לפי הסדר:'; return pick1(L); } $('#cnt').textContent = `נעלמת בעוד ${n}…`; n--; timers.push(setTimeout(tick, 1000)); };
   tick();
 }
 // --- התקדמות: רמה = כמה דברים בהוראה. הצלחה מלאה פעמיים ברצף ← רמה אחת למעלה. טעות ← נשארים (בלי ירידה) ---
@@ -204,7 +207,7 @@ function ex1() {
     $('#play').insertAdjacentHTML('afterend', '<button class="link nohear" id="nohear">🔇 לא שמעתי כלום</button>');
     $('#nohear').onclick = () => { clearT(); curAudio?.pause(); showWritten(L, 'לא נשמע? הנה ההוראה כתובה לרגע:'); };
     say(L.say, async ok => {
-      if (!$('#lst')) return;
+      if (!has('#lst')) return;
       if (!ok) { noVoice = true; await db.set('noVoice', true); return showWritten(L, 'לא הצלחתי להשמיע קול, אז ההוראה כתובה לרגע:'); }
       $('#wave')?.classList.remove('on');
       $('#lst').textContent = 'ההוראה נעלמה. עכשיו לפי הסדר:'; pick1(L);
@@ -443,10 +446,10 @@ function startListen() {
 }
 function stopListen() { listening = false; try { rec?.stop(); } catch { /* */ } uiListen(); }
 function uiListen() {
-  const m = $('#mic'); if (!m) return;
+  if (!has('#mic')) return; const m = $('#mic');
   m.classList.toggle('on', listening); m.textContent = listening ? '⏹' : '🎙️';
   $('#mst').textContent = listening ? 'מקשיב… לוחצים שוב כדי לעצור' : 'לוחצים, והטלפון מקשיב';
-  if (listening && $('#live')) $('#live').innerHTML = '<span class="int">מקשיב…</span>';
+  if (listening && has('#live')) $('#live').innerHTML = '<span class="int">מקשיב…</span>';
 }
 // --- כללים פשוטים (בחינם): טקסט → שורות בכרטיס ---
 const DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];

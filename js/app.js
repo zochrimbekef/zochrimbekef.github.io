@@ -5,6 +5,7 @@ import * as sync from './sync.js';
 import { NEWS, LATEST } from './news.js';
 import { IT, BANK, MIN_LEVEL, MAX_LEVEL, ROUNDS } from './bank1.js';
 import { build, MAX2, ROUNDS2 } from './bank2.js';
+import { LIST, GAPS, NEW_PER_DAY } from './bank3.js';
 
 // אלמנט שלא קיים (למשל בטעינה חצי-מעודכנת: index.html ישן עם app.js חדש) — מחזירים "אלמנט ריק" שבולע הכל, במקום קריסה
 const NOEL = new Proxy({}, { get: (_, k) => k === 'classList' ? { add() {}, remove() {}, toggle() {}, contains: () => false } : k === 'style' || k === 'dataset' ? {} : () => NOEL, set: () => true });
@@ -16,7 +17,7 @@ const FEEDBACK_FORM = 'afe845b5ff6d0c2cd899d08390663e7c'; // גיבוי במיי
 const FEEDBACK_TO = 'mvindish@gmail.com';
 
 // ---------- מצב ----------
-const blank = () => ({ v: 1, days: {}, seeds: [], prefs: { notice: true }, updated: 0 });
+const blank = () => ({ v: 1, days: {}, seeds: [], songs: [], prefs: { notice: true }, updated: 0 });
 let D = blank();          // המצב שנשמר
 let timers = [];
 const T = { ex3tab: 'words', ex3i: 0, songLines: null, songStuck: {} }; // זמני, לא נשמר
@@ -42,9 +43,9 @@ function merge(a, b) {
   const newer = (b.updated || 0) > (a.updated || 0) ? b : a;
   const days = { ...a.days };
   for (const [k, v] of Object.entries(b.days || {})) days[k] = { ...(days[k] || {}), ...v };
-  const seeds = [...(a.seeds || [])];
-  for (const s of b.seeds || []) if (!seeds.some(x => x.id === s.id)) seeds.push(s);
-  return { ...blank(), ...newer, days, seeds, updated: Math.max(a.updated || 0, b.updated || 0) };
+  // זרעים ושירים: לפי מזהה, והגרסה שעודכנה אחרונה (u) מנצחת. מה שנמחק מסומן gone ולא חוזר
+  const byId = (x = [], y = []) => { const m = new Map(); for (const it of [...x, ...y]) { const o = m.get(it.id); if (!o || (it.u || 0) > (o.u || 0)) m.set(it.id, it); } return [...m.values()]; };
+  return { ...blank(), ...newer, days, seeds: byId(a.seeds, b.seeds), songs: byId(a.songs, b.songs), updated: Math.max(a.updated || 0, b.updated || 0) };
 }
 async function save() {
   D.updated = Date.now();
@@ -101,12 +102,12 @@ function home() {
    <div class="hrow1"><div><div class="hi">${greet()}</div>
      <div class="streak"><span class="f">🔥</span>${st ? `${st} ${st === 1 ? 'יום' : 'ימים'} ברצף` : 'מתחילים רצף היום'}</div></div>
      <button class="gear" id="gearBtn" aria-label="הגדרות">⚙️</button></div>
-   <div class="garden">${Object.entries(PLANTS).map(([k, p]) => { const c = countEx(k); return `<div class="pl" data-k="${k}"><div class="drops"></div><span class="p" style="font-size:${34 + Math.min(c, 20) * 2}px">${p.st[stage(c)]}</span>${p.name}${d[k] ? ' 💧' : ''}</div>`; }).join('')}</div>
+   <div class="garden">${Object.entries(PLANTS).map(([k, p]) => { const c = k === 'ex3' ? grown().length * 2 : countEx(k); return `<div class="pl" data-k="${k}"><div class="drops"></div><span class="p" style="font-size:${34 + Math.min(c, 20) * 2}px">${p.st[stage(c)]}</span>${p.name}${d[k] ? ' 💧' : ''}</div>`; }).join('')}</div>
    <div class="tasks">
      <div class="muted">${n === 3 ? '🌻 הגן הושקה היום. נתראה מחר!' : `היום: ${n} מתוך 3 · ${12 - n * 4} דקות נשארו`}</div>
-     ${EX.map(e => `<button class="tk ${d[e[0]] ? 'tk-done' : ''}" onclick="location.hash='${e[0]}'"><span class="e">${e[1]}</span><span class="w"><b>${e[2]}</b><small>${e[0] === 'ex1' ? `4 דקות · רמה: ${E1().level} דברים` : e[0] === 'ex2' ? `4 דקות · רמה ${E2().level} מתוך ${MAX2}` : e[3]}</small></span><span class="st">${d[e[0]] ? '💧✔' : '💧'}</span></button>`).join('')}
+     ${EX.map(e => `<button class="tk ${d[e[0]] ? 'tk-done' : ''}" onclick="location.hash='${e[0]}'"><span class="e">${e[1]}</span><span class="w"><b>${e[2]}</b><small>${e[0] === 'ex1' ? `4 דקות · רמה: ${E1().level} דברים` : e[0] === 'ex2' ? `4 דקות · רמה ${E2().level} מתוך ${MAX2}` : due().length ? `4 דקות · 💧 ${due().length} להשקות היום` : e[3]}</small></span><span class="st">${d[e[0]] ? '💧✔' : '💧'}</span></button>`).join('')}
      ${next ? `<button class="btn" style="margin-top:12px" onclick="location.hash='${next[0]}'">▶ ממשיכים: ${next[2]}</button>` : ''}
-     <div class="seedsum"><div><b>${D.seeds.length}</b>זרעים בגן</div><div><b>${st}</b>ימים ברצף</div><div><b>${totalDays()}</b>ימי תרגול</div></div>
+     <div class="seedsum"><div><b>${live().length}</b>זרעים בגן</div><div><b>${due().length}</b>להשקות היום</div><div><b>${grown().length}</b>🌳 מילים שגדלו</div></div>
      ${sync.cloud === 'off' && sync.user() ? '<div class="cloudnote">📱 נשמר בטלפון. יעלה לחשבון כשיהיה חיבור.</div>' : ''}
      <div style="height:76px"></div>
    </div></div>
@@ -322,78 +323,144 @@ function ex2() {
 }
 
 // ================= תרגיל 3: ללמוד דבר חדש =================
-const WORDS = [
-  { pic: '🔑', en: 'Key', he: 'מפתח', story: '"קי" נשמע כמו "קיר": מפתח ענק תלוי על הקיר.', check: 1 },
-  { pic: '🚪', en: 'Door', he: 'דלת', story: '"דור" כמו דור: סבא מדור אחר עומד בדלת ומחייך.' },
-  { pic: '📖', en: 'Book', he: 'ספר', story: '"בוק" כמו "בוקר": כל בוקר פותחים ספר עם קפה.' },
-];
-const PICS = ['🔑', '🚪', '📖', '🍎', '🐟', '🌙', '🏠', '⭐', '🎹', '🚗', '☂️', '🕯️', '🍞', '👟', '🎈', '🧲', '🌉', '🪜'];
-const SONG = ['אני מאמין באמונה שלמה', 'בביאת המשיח', 'ואף על פי שיתמהמה', 'עם כל זה אחכה לו'];
+// זרע: { id, src:'list'|'mine', en, he, pic, story, planted, stage:0..3, due, u }. stage 3 = 🌳 עבר את בדיקת השבוע
+const PICS = ['🔑', '🚪', '📖', '🍎', '🐟', '🌙', '🏠', '⭐', '🎹', '🚗', '☂️', '🕯️', '🍞', '👟', '🎈', '🧲', '🌉', '🪜', '🐕', '🐈', '🌳', '☀️', '🪑', '⏰', '🎁', '👑', '🐴', '🌸', '🍉', '🎵'];
+const SONG0 = { id: 'ani-maamin', title: 'אני מאמין', lines: ['אני מאמין באמונה שלמה', 'בביאת המשיח', 'ואף על פי שיתמהמה', 'עם כל זה אחכה לו'] };
+const live = () => D.seeds.filter(x => !x.gone);
+const fixSeed = x => { x.stage ??= 0; x.due ??= addDays(x.planted || dayKey(), 1); return x; };
+const due = () => live().map(fixSeed).filter(x => x.stage < 3 && x.due <= dayKey());
+const grown = () => live().filter(x => x.stage >= 3);
+const plantedToday = () => live().filter(x => x.src === 'list' && x.planted === dayKey()).length;
+const nextNew = () => LIST.filter(w => !D.seeds.some(x => x.id === 'L-' + w.id));
+function sayWord(w) { playRec(w.en).then(ok => { if (ok) return; try { const u = new SpeechSynthesisUtterance(w.en); u.lang = 'en-US'; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch { toast('אין קול בטלפון הזה'); } }); }
+const SCHED = st => `<div class="sched">${['נשתל 🌱', 'מחר 💧', 'עוד 3 ימים 💧', 'עוד שבוע 💧', 'גדל 🌳'].map((t, k) => `<span class="${k === st + 1 ? 'now' : k <= st ? 'done' : ''}">${t}</span>`).join('')}</div>`;
+
 function ex3() {
   V().innerHTML = `<div class="scr">${topbar('📚 ללמוד דבר חדש', '4 דקות')}
-   <div class="seg">${[['words', '🔤 מילים'], ['song', '🎵 שיר'], ['add', '➕ להוסיף']].map(([k, n]) => `<button data-t="${k}" class="${T.ex3tab === k ? 'on' : ''}">${n}</button>`).join('')}</div>
+   <div class="seg">${[['words', '🔤 מילים'], ['song', '🎵 שירים'], ['add', '➕ משלי']].map(([k, n]) => `<button data-t="${k}" class="${T.ex3tab === k ? 'on' : ''}">${n}</button>`).join('')}</div>
    <div id="ex3b"></div></div>`;
-  document.querySelectorAll('.seg button').forEach(b => b.onclick = () => { T.ex3tab = b.dataset.t; ex3(); });
+  document.querySelectorAll('.seg button').forEach(b => b.onclick = () => { T.ex3tab = b.dataset.t; T.q = null; ex3(); });
   ({ words: ex3words, song: ex3song, add: ex3add })[T.ex3tab]();
 }
+// --- מילים: קודם השקיה (מה שהגיע זמנו), אחר כך זרעים חדשים מהרשימה ---
 function ex3words() {
-  const w = WORDS[T.ex3i], el = $('#ex3b');
-  if (w.check) {
-    const opts = ['🔑', '🍎', '🚪'].sort(() => Math.random() - 0.5);
-    el.innerHTML = `<div class="wcard"><div class="muted">💧 השקיה: בדיקה קצרה של מילה מאתמול</div><div class="en" style="margin-top:8px">${w.en}</div><p class="muted">איזו תמונה?</p>
+  if (!T.q) {
+    const reviews = due().sort(() => Math.random() - 0.5).slice(0, 12).map(x => ({ k: 'rev', id: x.id }));
+    const news = nextNew().slice(0, Math.max(0, NEW_PER_DAY - plantedToday())).map(w => ({ k: 'new', w }));
+    T.q = [...reviews, ...news]; T.qi = 0; T.qRes = { ok: 0, bad: 0, planted: 0, grew: 0 };
+  }
+  const el = $('#ex3b'), item = T.q[T.qi];
+  if (!item) return ex3done();
+  const prog = `<div class="qprog">${T.q.map((x, k) => `<i class="${k < T.qi ? 'd' : k === T.qi ? 'n' : ''}">${x.k === 'rev' ? '💧' : '🌱'}</i>`).join('')}</div>`;
+  if (item.k === 'rev') {
+    const sd = D.seeds.find(x => x.id === item.id);
+    const opts = [sd.pic, ...PICS.filter(p => p !== sd.pic).sort(() => Math.random() - 0.5).slice(0, 2)].sort(() => Math.random() - 0.5);
+    el.innerHTML = `${prog}<div class="wcard"><div class="muted">💧 השקיה: מה זה?</div><div class="en" style="margin-top:8px" dir="auto">${esc(sd.en)}</div>
+      <button class="link" id="sayW">🔊 לשמוע</button>
       <div class="choices">${opts.map(o => `<button data-o="${o}">${o}</button>`).join('')}</div><div id="fb" style="min-height:28px;margin-top:10px"></div></div>`;
-    el.querySelectorAll('.choices button').forEach(b => b.onclick = () => {
-      const ok = b.dataset.o === w.pic; b.classList.add(ok ? 'ok' : 'bad');
-      if (!ok) el.querySelector(`[data-o="${w.pic}"]`).classList.add('ok');
+    if (sd.src === 'list') sayWord(sd);
+    $('#sayW').onclick = () => sayWord(sd);
+    el.querySelectorAll('.choices button').forEach(b => b.onclick = async () => {
+      const ok = b.dataset.o === sd.pic; b.classList.add(ok ? 'ok' : 'bad');
+      if (!ok) el.querySelector(`[data-o="${sd.pic}"]`).classList.add('ok');
       el.querySelectorAll('.choices button').forEach(x => { x.disabled = true; });
-      $('#fb').innerHTML = `${ok ? '✅ נכון! ' : '🌱 זה בסדר. '}<b>${w.he}</b>. ${w.story}<button class="btn" style="margin-top:12px" id="nx">הבא ←</button>`;
-      $('#nx').onclick = () => { T.ex3i++; ex3words(); };
+      if (ok) { sd.stage = Math.min(3, (sd.stage || 0) + 1); sd.due = sd.stage < 3 ? addDays(dayKey(), GAPS[sd.stage]) : null; T.qRes.ok++; if (sd.stage === 3) T.qRes.grew++; }
+      else { sd.due = addDays(dayKey(), 1); T.qRes.bad++; }
+      sd.u = Date.now(); await save();
+      $('#fb').innerHTML = `${ok ? (sd.stage === 3 ? '🌳 נכון! המילה גדלה, היא כבר שלך.' : '✅ נכון!') : '🌱 זה בסדר, נשקה אותה שוב מחר.'}<br><b>${esc(sd.he)}</b>${sd.story ? ` · ${esc(sd.story)}` : ''}
+        ${sd.stage < 3 ? SCHED(sd.stage) : ''}<button class="btn" style="margin-top:12px" id="nx">הבא ←</button>`;
+      $('#nx').onclick = () => { T.qi++; ex3words(); };
     });
     return;
   }
-  el.innerHTML = `<div class="wcard"><div class="muted">🌱 זרע חדש · ${T.ex3i} מתוך ${WORDS.length - 1}</div><div class="pic">${w.pic}</div><div class="en">${w.en}</div><div class="he">${w.he}</div>
-    <div class="story">${w.story}</div>
-    <div class="sched"><span>היום 🌱</span><span class="now">מחר 💧</span><span>עוד 3 ימים 💧</span><span>עוד שבוע 💧</span></div></div>
+  const w = item.w;
+  el.innerHTML = `${prog}<div class="wcard"><div class="muted">🌱 זרע חדש מהרשימה</div><div class="pic">${w.pic}</div><div class="en">${w.en}</div><div class="he">${w.he}</div>
+    <div class="story">${w.story}</div>${SCHED(-1)}</div>
     <button class="btn b" style="margin-top:14px" id="say">🔊 איך זה נשמע</button>
-    <button class="btn" id="nx">${T.ex3i < WORDS.length - 1 ? 'הבא ←' : 'שתלתי 💧'}</button>`;
-  $('#say').onclick = async () => { if (await playRec(w.en)) return; try { const u = new SpeechSynthesisUtterance(w.en); u.lang = 'en-US'; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch { toast('אין קול בטלפון הזה'); } };
-  $('#nx').onclick = () => { if (T.ex3i < WORDS.length - 1) { T.ex3i++; ex3words(); } else { T.ex3i = 0; finish('ex3', 'בדקת מילה אחת ושתלת 2 זרעים חדשים.'); } };
-}
-function ex3song() {
-  const cols = [['#2E9BE6', '#164A6B'], ['#E0527A', '#8E1F43'], ['#5DBB63', '#1B5E20'], ['#FFC93C', '#7A5300']];
-  const lines = T.songLines || SONG, n = Object.keys(T.songStuck).length;
-  $('#ex3b').innerHTML = `<div class="card"><b>🎵 ${T.songLines ? 'השיר שלך' : 'אני מאמין'}</b><p class="muted">רואים רק את האות הראשונה, וצבע לכל שורה. מנסים לשיר, ולוחצים רק על מילה שנתקעים בה.</p></div>
-   <div class="lyr">${lines.map((l, li) => `<div class="line" style="--c:${cols[li % 4][0]};--c2:${cols[li % 4][1]}">${l.split(/\s+/).map((wd, wi) => { const k = li + '_' + wi, sh = T.songStuck[k]; return `<button data-k="${k}" data-w="${esc(wd)}" class="${sh ? 'show' : ''}">${sh ? esc(wd) : esc(wd[0]) + '…'}</button>`; }).join('')}</div>`).join('')}</div>
-   <div class="card" id="sr">${n ? `נתקעת ב־${n} מילים. מחר מתחילים דווקא מהן.` : 'עוד לא נתקעת באף מילה 👏'}</div>
-   <label class="field"><span>📋 שיר משלך: הדבק את המילים, שורה בכל שורה</span><textarea id="paste" placeholder="מדביקים כאן…"></textarea></label>
-   <button class="btn g" style="margin-top:10px" id="use">הפוך לאותיות וצבעים</button>`;
-  document.querySelectorAll('.lyr button').forEach(b => b.onclick = () => {
-    if (T.songStuck[b.dataset.k]) return; T.songStuck[b.dataset.k] = 1; b.textContent = b.dataset.w; b.classList.add('show');
-    $('#sr').textContent = `נתקעת ב־${Object.keys(T.songStuck).length} מילים. מחר מתחילים דווקא מהן.`;
-  });
-  $('#use').onclick = () => {
-    const t = $('#paste').value.split('\n').map(s => s.trim()).filter(Boolean);
-    if (!t.length) return toast('קודם מדביקים מילים');
-    T.songLines = t.slice(0, 16); T.songStuck = {}; ex3song(); toast('🎵 השיר מוכן');
+    <button class="btn" id="nx">🌱 שתלתי ←</button>`;
+  sayWord(w);
+  $('#say').onclick = () => sayWord(w);
+  $('#nx').onclick = async () => {
+    D.seeds.push({ id: 'L-' + w.id, src: 'list', en: w.en, he: w.he, pic: w.pic, story: w.story, planted: dayKey(), stage: 0, due: addDays(dayKey(), 1), u: Date.now() });
+    T.qRes.planted++; await save(); T.qi++; ex3words();
   };
 }
+function ex3done() {
+  const r = T.qRes || { ok: 0, bad: 0, planted: 0, grew: 0 }, did = r.ok + r.bad + r.planted;
+  T.q = null;
+  if (!did) {
+    $('#ex3b').innerHTML = `<div class="wcard"><div class="pic">🌿</div><div class="big">הכל מושקה להיום!</div><p class="muted" style="margin-top:6px">אין מילים שהגיע זמנן, ושתלת כבר ${NEW_PER_DAY} חדשות היום.</p>
+      ${nextNew().length ? '<button class="btn g" id="more" style="margin-top:12px">🌱 לשתול עוד מילה אחת</button>' : ''}
+      <button class="btn" id="toSong" style="margin-top:12px">🎵 לתרגל שיר</button></div>`;
+    $('#more').onclick = () => { T.q = [{ k: 'new', w: nextNew()[0] }]; T.qi = 0; T.qRes = { ok: 0, bad: 0, planted: 0, grew: 0 }; ex3words(); };
+    $('#toSong').onclick = () => { T.ex3tab = 'song'; ex3(); };
+    return;
+  }
+  const mil = n => n === 1 ? 'מילה אחת' : `${n} מילים`;
+  const parts = [r.ok || r.bad ? `השקית ${mil(r.ok + r.bad)}: ${r.ok} נכון${r.bad ? `, ו${r.bad === 1 ? 'אחת תחזור' : `־${r.bad} יחזרו`} מחר` : ''}.` : '', r.planted ? `שתלת ${r.planted === 1 ? 'זרע חדש' : `${r.planted} זרעים חדשים`}.` : '', r.grew ? `🌳 ${r.grew === 1 ? 'מילה אחת גדלה' : `${r.grew} מילים גדלו`} לגמרי!` : ''].filter(Boolean);
+  finish('ex3', parts.join('<br>') + `<br>🌳 בגן: ${mil(grown().length)} שגדלו, ${live().length - grown().length} בדרך.`);
+}
+// --- שירים: נשמרים. מתחילים מהמילים שנתקעת בהן בפעם הקודמת. 3 פעמים בלי להיתקע = 🌳 יודע בעל פה ---
+const songs = () => { if (!D.songs?.length && !D.songsInit) { D.songs = [{ ...SONG0, stuck: [], clean: 0, u: 1 }]; D.songsInit = 1; } return (D.songs || []).filter(x => !x.gone); };
+function ex3song() {
+  const list = songs();
+  if (!T.song || !list.some(x => x.id === T.song)) T.song = list[0]?.id || null;
+  const sg = list.find(x => x.id === T.song), cols = [['#2E9BE6', '#164A6B'], ['#E0527A', '#8E1F43'], ['#5DBB63', '#1B5E20'], ['#FFC93C', '#7A5300']];
+  T.today ??= {};
+  const tabs = list.length ? `<div class="songs">${list.map(x => `<button class="chip ${x.id === T.song ? 'on' : ''}" data-s="${x.id}">${x.known ? '🌳 ' : '🎵 '}${esc(x.title)}</button>`).join('')}</div>` : '';
+  const line = (l, li) => `<div class="line" style="--c:${cols[li % 4][0]};--c2:${cols[li % 4][1]}">${l.split(/\s+/).map((wd, wi) => { const k = li + '_' + wi, sh = T.today[sg.id + ':' + k]; return `<button data-k="${k}" data-w="${esc(wd)}" class="${sh ? 'show' : ''} ${sg.stuck.includes(k) ? 'hard' : ''}">${sh ? esc(wd) : esc(wd[0]) + '…'}</button>`; }).join('')}</div>`;
+  const hardLines = sg ? [...new Set(sg.stuck.map(k => +k.split('_')[0]))] : [];
+  $('#ex3b').innerHTML = `${tabs}${sg ? `<div class="card"><b>🎵 ${esc(sg.title)}</b>${sg.known ? ' <span class="known">🌳 יודע בעל פה</span>' : ''}
+      <p class="muted">רואים רק את האות הראשונה, וצבע לכל שורה. מנסים לשיר, ולוחצים רק על מילה שנתקעים בה.</p>
+      ${sg.clean && !sg.known ? `<p class="muted">✨ ${sg.clean} מתוך 3 פעמים בלי להיתקע</p>` : ''}</div>
+    ${hardLines.length ? `<div class="card hardbox"><b>🔁 קודם: השורות שנתקעת בהן בפעם הקודמת</b><div class="lyr">${hardLines.map(li => line(sg.lines[li], li)).join('')}</div></div>` : ''}
+    <div class="lyr" id="lyr">${sg.lines.map(line).join('')}</div>
+    <button class="btn" id="songDone" style="margin-top:12px">✔ סיימתי לשיר</button>` : ''}
+    <details class="card addsong"><summary>📋 להוסיף שיר משלי</summary>
+      <label class="field"><span>שם השיר</span><input id="sT" placeholder="למשל: ניגון לשבת"></label>
+      <label class="field"><span>המילים, שורה בכל שורה</span><textarea id="paste" placeholder="מדביקים כאן…"></textarea></label>
+      <button class="btn g" style="margin-top:10px" id="use">🎵 לשמור את השיר</button></details>
+    ${sg && sg.id !== SONG0.id ? '<button class="link" id="delSong" style="display:block;margin:14px auto 0;color:var(--bad)">🗑️ למחוק את השיר הזה</button>' : ''}`;
+  document.querySelectorAll('.songs [data-s]').forEach(b => b.onclick = () => { T.song = b.dataset.s; ex3song(); });
+  document.querySelectorAll('.lyr button').forEach(b => b.onclick = () => {
+    const key = sg.id + ':' + b.dataset.k; if (T.today[key]) return; T.today[key] = 1;
+    document.querySelectorAll(`.lyr button[data-k="${b.dataset.k}"]`).forEach(x => { x.textContent = x.dataset.w; x.classList.add('show'); });
+  });
+  if (!sg) return;
+  $('#songDone').onclick = async () => {
+    const mine = Object.keys(T.today).filter(k => k.startsWith(sg.id + ':')).map(k => k.split(':')[1]);
+    sg.stuck = mine; sg.clean = mine.length ? 0 : (sg.clean || 0) + 1;
+    const nowKnown = !sg.known && sg.clean >= 3; if (nowKnown) sg.known = true;
+    sg.last = dayKey(); sg.u = Date.now(); mine.forEach(k => delete T.today[sg.id + ':' + k]);
+    await save();
+    finish('ex3', mine.length ? `נתקעת ב־${mine.length} מילים. בפעם הבאה מתחילים דווקא מהן.` : nowKnown ? `🌳 שלוש פעמים בלי להיתקע: "${esc(sg.title)}" בעל פה!` : `בלי להיתקע אף פעם 👏 (${sg.clean} מתוך 3)`);
+  };
+  $('#use').onclick = async () => {
+    const lines = $('#paste').value.split('\n').map(x => x.trim()).filter(Boolean);
+    if (!lines.length) return toast('קודם מדביקים מילים');
+    const sgn = { id: db.newId(), title: ($('#sT').value.trim() || lines[0]).slice(0, 40), lines: lines.slice(0, 40), stuck: [], clean: 0, u: Date.now() };
+    D.songs = [...(D.songs || []), sgn]; T.song = sgn.id; await save(); toast('🎵 השיר נשמר'); ex3song();
+  };
+  $('#delSong')?.addEventListener('click', async () => { if (!confirm('למחוק את השיר?')) return; sg.gone = 1; sg.u = Date.now(); T.song = null; await save(); ex3song(); });
+}
+// --- מילה משלי ---
 function ex3add() {
   let pic = '';
-  const mine = [...D.seeds].reverse().slice(0, 12);
-  $('#ex3b').innerHTML = `<div class="card"><b>🌱 לשתול מילה חדשה</b><p class="muted">סיפור שכתבת בעצמך נזכר הכי טוב.</p>
+  const mine = live().filter(x => x.src !== 'list').reverse().slice(0, 12);
+  $('#ex3b').innerHTML = `<div class="card"><b>🌱 לשתול מילה משלי</b><p class="muted">סיפור שכתבת בעצמך נזכר הכי טוב. היא תיבדק מחר, אחרי 3 ימים ואחרי שבוע.</p>
    <label class="field"><span>המילה</span><input id="aw" placeholder="למשל: Bridge" autocomplete="off"></label>
    <label class="field"><span>מה זה אומר</span><input id="am" placeholder="למשל: גשר" autocomplete="off"></label>
    <div class="field"><span>תמונה</span><div class="emo">${PICS.map(p => `<button data-p="${p}">${p}</button>`).join('')}</div></div>
-   <label class="field"><span>סיפור שמחבר את הצליל למשהו מוכר</span><textarea id="as" placeholder='למשל: "בְּרִידג׳" כמו "ברד": ברד נופל על גשר'></textarea></label>
+   <label class="field"><span>סיפור שמחבר את הצליל למשהו מוכר</span><textarea id="as" placeholder='למשל: "בְּרִידג׳" כמו "בריכה": גשר מעל בריכה'></textarea></label>
    <button class="btn" style="margin-top:14px" id="plant">🌱 לשתול</button></div>
-   ${mine.length ? `<div class="card"><b>הזרעים שלך (${D.seeds.length})</b>${mine.map(m => `<div class="tk" style="pointer-events:none"><span class="e">${esc(m.pic)}</span><span class="w"><b>${esc(m.en)}</b><small>${esc(m.he)}${m.story ? ' · ' + esc(m.story) : ''}</small></span></div>`).join('')}</div>` : ''}`;
+   ${mine.length ? `<div class="card"><b>המילים שלי</b>${mine.map(m => `<div class="tk" style="pointer-events:none"><span class="e">${esc(m.pic)}</span><span class="w"><b dir="auto">${esc(m.en)}</b><small>${esc(m.he)} · ${m.stage >= 3 ? '🌳 גדלה' : `💧 ${m.due <= dayKey() ? 'היום' : m.due.split('-').reverse().slice(0, 2).join('.')}`}</small></span></div>`).join('')}</div>` : ''}`;
   document.querySelectorAll('.emo button').forEach(b => b.onclick = () => { document.querySelectorAll('.emo button').forEach(x => x.classList.remove('on')); b.classList.add('on'); pic = b.dataset.p; });
   $('#plant').onclick = async () => {
     const en = $('#aw').value.trim(), he = $('#am').value.trim();
     if (!en || !he) return toast('צריך מילה ומה היא אומרת');
     if (!pic) return toast('בחר תמונה');
-    D.seeds.push({ id: db.newId(), en: en.slice(0, 60), he: he.slice(0, 60), pic, story: $('#as').value.trim().slice(0, 300), planted: dayKey() });
-    await save(); toast('🌱 נשתל! הבדיקות הקצרות ייבנו בחלק 4'); ex3add();
+    D.seeds.push({ id: db.newId(), src: 'mine', en: en.slice(0, 60), he: he.slice(0, 60), pic, story: $('#as').value.trim().slice(0, 300), planted: dayKey(), stage: 0, due: addDays(dayKey(), 1), u: Date.now() });
+    await save(); toast('🌱 נשתל! בדיקה ראשונה מחר'); ex3add();
   };
 }
 
@@ -677,7 +744,11 @@ function render() {
 function bdikaFixture() {
   const d = blank(); let k = dayKey();
   for (let i = 1; i <= 6; i++) { k = addDays(dayKey(), -i); d.days[k] = { ex1: 1, ex2: 1, ex3: 1 }; }
-  d.seeds = [['🔑', 'Key', 'מפתח'], ['🚪', 'Door', 'דלת'], ['📖', 'Book', 'ספר'], ['🍎', 'Apple', 'תפוח'], ['🌙', 'Moon', 'ירח']].map(([pic, en, he], i) => ({ id: 's' + i, pic, en, he, story: '', planted: addDays(dayKey(), -i) }));
+  // הדגמה: 3 מילים להשקות היום, 1 שגדלה, ו־2 שעוד לא הגיע זמנן
+  d.seeds = [['key', 0, 0], ['door', 1, 0], ['book', 2, 0], ['apple', 3, null], ['fish', 1, 2], ['moon', 0, 1]].map(([id, st, dueIn]) => {
+    const w = LIST.find(x => x.id === id);
+    return { id: 'L-' + id, src: 'list', en: w.en, he: w.he, pic: w.pic, story: w.story, planted: addDays(dayKey(), -10), stage: st, due: dueIn == null ? null : addDays(dayKey(), dueIn), u: 1 };
+  });
   d.ex2 = { level: 3, run: 0, hist: [{ d: addDays(dayKey(), -4), words: 45, ok: true }] };
   d.ex1 = { level: 4, run: 1, seen: [], hist: [{ d: addDays(dayKey(), -5), len: 3, ok: true }, { d: addDays(dayKey(), -1), len: 4, ok: true }] };
   return d;

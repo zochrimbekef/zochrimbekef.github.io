@@ -222,3 +222,13 @@ textarea.live{width:100%;border:0;font-size:16px;min-height:120px;font-family:in
 .hits{display:flex;gap:10px;margin-top:14px}
 .hits .btn{margin:0;flex:1;font-size:22px}
 .hits.two .btn{font-size:20px}
+/* part 4 */
+.qprog{display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin-bottom:6px}
+.qprog i{font-style:normal;font-size:14px;opacity:.35}
+.qprog i.d{opacity:1}.qprog i.n{opacity:1;transform:scale(1.3)}
+.sched span.done{background:#E3F6E1;color:var(--leaf)}
+.songs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.known{font-size:13px;background:#E3F6E1;color:var(--leaf);border-radius:99px;padding:2px 8px}
+.lyr .line button.hard{box-shadow:inset 0 0 0 2px #F3D97A}
+.hardbox{background:#FFFBEA}
+.addsong summary{font-weight:700;cursor:pointer}
